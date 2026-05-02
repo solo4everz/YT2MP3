@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { cadanganBodySchema } from "@/lib/quiz/schema";
-import { pickFoodWithOpenAi } from "@/lib/openai";
+import { pickFoodWithGemini } from "@/lib/gemini";
 import { searchNearbyRestaurants } from "@/lib/places";
 import type { FoodMenu } from "@/types/database";
 
@@ -52,9 +52,9 @@ export async function POST(request: NextRequest) {
 
   let pick: { food_menu_id: string; reason_ms: string };
   try {
-    pick = await pickFoodWithOpenAi(answers, menu);
+    pick = await pickFoodWithGemini(answers, menu);
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Ralat OpenAI";
+    const msg = e instanceof Error ? e.message : "Ralat Gemini";
     return NextResponse.json({ error: msg }, { status: 502 });
   }
 
