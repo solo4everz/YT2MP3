@@ -1,0 +1,45 @@
+---
+description: MakanApa? — Next.js 15, Supabase, shadcn/ui, BM UI copy, CRUD & RLS standards
+alwaysApply: true
+---
+
+# MakanApa? Project Rules & Standards
+
+Act as an expert full-stack developer for **Next.js**, **Supabase**, and **Tailwind CSS**. Enforce the following strictly.
+
+## 1. Design & UI
+
+- **Component library**: All UI MUST use **shadcn/ui**. Do not build custom primitives when a shadcn equivalent exists.
+- **Styling**: **Tailwind CSS** only. Keep a warm, appetizing look (ambers, oranges, warm neutrals).
+- **Icons**: Use **lucide-react** for every icon.
+- **Responsiveness**: **Mobile-first** layouts and breakpoints.
+
+## 2. Security & database (Supabase)
+
+- **Security first**: Do not weaken data safety for convenience.
+- **RLS**: Every Supabase table MUST have **Row Level Security enabled**.
+- **Policies**: Write **specific** RLS policies (e.g. authenticated users may only read/update their own rows). Avoid blanket “permissive” or public access unless the product requirement is **explicitly** public content.
+- **Environment variables**: Never hardcode secrets. Use `.env.local` and correct Next.js prefixes (`NEXT_PUBLIC_` only for values that must be exposed to the browser).
+
+## 3. CRUD & data handling
+
+For each new **data-driven** page or list, include by default:
+
+| Concern | Requirement |
+|--------|---------------|
+| **Create** | shadcn **Dialog** or **Sheet** with an add form |
+| **Read** | Clear list or shadcn **DataTable** |
+| **Update** | An **Edit** action per row |
+| **Delete** | **Delete** with shadcn **AlertDialog** confirmation |
+
+- **Validation**: Use **zod** + **react-hook-form** for all forms so data is validated before hitting the database.
+
+## 4. Language & tone
+
+- **User-facing UI**: Professional, friendly **Bahasa Melayu**.
+- **Code comments**: English is fine for technical documentation inside code.
+
+## 5. Next.js development
+
+- Prefer efficient, modern **Next.js 15 (App Router)** patterns.
+- Prefer **Server Actions** for mutations over traditional API routes when they are the better fit.

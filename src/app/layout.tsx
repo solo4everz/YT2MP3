@@ -1,0 +1,40 @@
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+export const metadata: Metadata = {
+  title: "NakMakanApa?",
+  description:
+    "Kuiz mood ringkas untuk cadangan jenis makanan dan restoran berdekatan (Bahasa Melayu).",
+  openGraph: {
+    title: "NakMakanApa?",
+    description:
+      "Cuaca, teman, nostalgia & selera — dapatkan cadangan makan daripada AI dan lokasi daripada Google Places.",
+    locale: "ms_MY",
+  },
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html
+      lang="ms"
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+    >
+      <body className="min-h-full flex flex-col">{children}</body>
+    </html>
+  );
+}
