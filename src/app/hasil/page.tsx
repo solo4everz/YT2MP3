@@ -143,8 +143,8 @@ export default function HasilPage() {
       </div>
 
       <p className="text-xs text-muted-foreground leading-relaxed">
-        Kadaran dan ulasan datang daripada Google. Semak sebelum anda pergi — ia mungkin
-        sudah lama atau tidak lagi wujud ketika anda lawat.
+        Maklumat tempat datang daripada Geoapify (sumber terbuka). Semak sebelum anda
+        pergi — ia mungkin sudah lama atau tidak lagi wujud ketika anda lawat.
       </p>
     </div>
   );

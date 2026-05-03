@@ -22,7 +22,7 @@ export function HeroLanding() {
         </h1>
         <p className="text-muted-foreground text-balance leading-relaxed">
           Ambil kuiz mood ringkas — selepas itu kami mencadangkan jenis makanan dan
-          restoran berdekatan daripada Google Maps.
+          restoran berdekatan melalui Geoapify (data tempat).
         </p>
       </div>
 

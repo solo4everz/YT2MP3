@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       longitude,
     );
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "Ralat Google Places";
+    const msg = e instanceof Error ? e.message : "Ralat carian tempat (Geoapify)";
     return NextResponse.json({ error: msg }, { status: 502 });
   }
 

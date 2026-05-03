@@ -1,109 +1,120 @@
 import type { CadanganRestaurant } from "@/lib/quiz/schema";
 
-const SEARCH_TEXT_URL = "https://places.googleapis.com/v1/places:searchText";
+const PLACES_URL = "https://api.geoapify.com/v2/places";
 
-type GooglePlace = {
-  id?: string;
-  displayName?: { text?: string };
-  formattedAddress?: string;
-  rating?: number;
-  userRatingCount?: number;
-  googleMapsUri?: string;
+type GeoapifyProps = {
+  name?: string;
+  formatted?: string;
+  place_id?: string;
+  lat?: number;
+  lon?: number;
+  distance?: number;
 };
 
-type SearchTextResponse = {
-  places?: GooglePlace[];
+type GeoapifyFeature = {
+  type?: string;
+  geometry?: { type?: string; coordinates?: [number, number] };
+  properties?: GeoapifyProps;
+  id?: string | number;
 };
+
+type GeoapifyResponse = {
+  features?: GeoapifyFeature[];
+};
+
+function mapsUriFromPlace(
+  lon: number | undefined,
+  lat: number | undefined,
+  name: string,
+  formatted: string | undefined,
+): string | undefined {
+  if (typeof lat === "number" && typeof lon === "number") {
+    return `https://www.google.com/maps?q=${lat},${lon}`;
+  }
+  const q = [name, formatted].filter(Boolean).join(", ");
+  if (!q.trim()) return undefined;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+}
+
+async function fetchGeoapifyFeatures(
+  params: URLSearchParams,
+): Promise<GeoapifyFeature[]> {
+  const res = await fetch(`${PLACES_URL}?${params.toString()}`);
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(
+      `Geoapify Places gagal (${res.status}): ${errText.slice(0, 280)}`,
+    );
+  }
+  const data = (await res.json()) as GeoapifyResponse;
+  return data.features ?? [];
+}
 
 export async function searchNearbyRestaurants(
   textQuery: string,
   latitude: number,
   longitude: number,
 ): Promise<CadanganRestaurant[]> {
-  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+  const apiKey = process.env.GEOAPIFY_API_KEY;
   if (!apiKey) {
-    throw new Error("GOOGLE_MAPS_API_KEY tidak ditetapkan");
+    throw new Error("GEOAPIFY_API_KEY tidak ditetapkan");
   }
 
-  const radiusM = Number(process.env.GOOGLE_PLACES_DEFAULT_RADIUS_M ?? 2500);
+  const radiusM = Number(process.env.GEOAPIFY_SEARCH_RADIUS_M ?? 2500);
+  const limit = Math.min(
+    20,
+    Math.max(1, Number(process.env.GEOAPIFY_PLACES_LIMIT ?? 20)),
+  );
 
-  const body = {
-    textQuery,
-    maxResultCount: 10,
-    rankPreference: "RELEVANCE",
-    locationBias: {
-      circle: {
-        center: { latitude, longitude },
-        radius: radiusM,
-      },
-    },
-    languageCode: "ms",
-    regionCode: "MY",
-  };
+  const categories =
+    process.env.GEOAPIFY_PLACE_CATEGORIES ??
+    "catering.restaurant,catering.fast_food,catering.cafe";
 
-  const fieldMask =
-    "places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.googleMapsUri";
+  const nameHint = textQuery
+    .replace(/\s+restaurant\s*$/i, "")
+    .trim()
+    .slice(0, 100);
 
-  const res = await fetch(SEARCH_TEXT_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Goog-Api-Key": apiKey,
-      "X-Goog-FieldMask": fieldMask,
-    },
-    body: JSON.stringify(body),
+  const baseParams = new URLSearchParams({
+    apiKey,
+    categories,
+    filter: `circle:${longitude},${latitude},${radiusM}`,
+    bias: `proximity:${longitude},${latitude}`,
+    limit: String(limit),
+    lang: "ms",
   });
 
-  if (!res.ok) {
-    const errText = await res.text().catch(() => "");
-    throw new Error(
-      `Places API gagal (${res.status}): ${errText.slice(0, 280)}`,
-    );
+  let features: GeoapifyFeature[] = [];
+  if (nameHint.length >= 2) {
+    const withName = new URLSearchParams(baseParams);
+    withName.set("name", nameHint);
+    features = await fetchGeoapifyFeatures(withName);
+  }
+  if (features.length === 0) {
+    features = await fetchGeoapifyFeatures(new URLSearchParams(baseParams));
   }
 
-  const data = (await res.json()) as SearchTextResponse;
-  const raw = data.places ?? [];
+  return features
+    .map((f, index) => {
+      const prop = f.properties ?? {};
+      const coords = f.geometry?.coordinates;
+      const lon = prop.lon ?? coords?.[0];
+      const lat = prop.lat ?? coords?.[1];
+      const displayName = String(
+        prop.name?.trim() || prop.formatted?.trim() || "Tempat",
+      );
+      const placeId = String(
+        prop.place_id ??
+          (f.id != null ? String(f.id) : `geoapify-${index}-${displayName}`),
+      );
 
-  const minRating = 3.9;
-  const minReviews = 10;
-
-  const mapped: CadanganRestaurant[] = raw
-    .filter(
-      (p) =>
-        p.id &&
-        p.displayName?.text &&
-        (p.rating == null ||
-          (p.rating >= minRating &&
-            (p.userRatingCount ?? 0) >= minReviews)),
-    )
-    .map((p) => ({
-      placeId: String(p.id),
-      displayName: String(p.displayName?.text),
-      formattedAddress: p.formattedAddress,
-      rating: p.rating,
-      userRatingCount: p.userRatingCount,
-      googleMapsUri: p.googleMapsUri,
-    }));
-
-  if (mapped.length > 0) {
-    mapped.sort((a, b) => {
-      const ra = (a.rating ?? 0) * Math.log1p(a.userRatingCount ?? 1);
-      const rb = (b.rating ?? 0) * Math.log1p(b.userRatingCount ?? 1);
-      return rb - ra;
-    });
-    return mapped;
-  }
-
-  // Longgar had jika tiada mencukupi
-  return raw
-    .filter((p) => p.id && p.displayName?.text)
-    .slice(0, 8)
-    .map((p) => ({
-      placeId: String(p.id),
-      displayName: String(p.displayName?.text),
-      formattedAddress: p.formattedAddress,
-      rating: p.rating,
-      userRatingCount: p.userRatingCount,
-      googleMapsUri: p.googleMapsUri,
-    }));
+      return {
+        placeId,
+        displayName,
+        formattedAddress: prop.formatted,
+        googleMapsUri: mapsUriFromPlace(lon, lat, displayName, prop.formatted),
+      } satisfies CadanganRestaurant;
+    })
+    .filter((r) => r.displayName.length > 0)
+    .slice(0, 10);
 }

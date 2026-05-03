@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "NakMakanApa?",
     description:
-      "Cuaca, teman, nostalgia & selera — dapatkan cadangan makan daripada AI dan lokasi daripada Google Places.",
+      "Cuaca, teman, nostalgia & selera — dapatkan cadangan makan daripada AI dan restoran berdekatan melalui Geoapify.",
     locale: "ms_MY",
   },
 };
