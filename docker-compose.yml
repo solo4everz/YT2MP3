@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  yt2mp3-studio:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: yt2mp3-studio
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    tmpfs:
+      - /tmp
