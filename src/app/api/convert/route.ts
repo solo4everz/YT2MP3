@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
       ? url
       : `https://${url}`;
 
-    // Mode 1: Try local system yt-dlp + ffmpeg first (Full 320k MP3 + Trimming + ID3 Tags)
+    // Mode 1: Try local yt-dlp + ffmpeg first
     try {
       const inputTemplate = path.join(tmpDir, "input.%(ext)s");
       const downloadArgs = [
@@ -174,10 +174,10 @@ export async function POST(req: NextRequest) {
         }
       }
     } catch (ytDlpFfmpegErr) {
-      console.warn("Local yt-dlp/ffmpeg unavailable or failed, utilizing hosted serverless direct stream mode:", ytDlpFfmpegErr);
+      console.warn("Local yt-dlp/ffmpeg failed or missing, switching to @distube/ytdl-core fallback:", ytDlpFfmpegErr);
     }
 
-    // Mode 2: Hosted / Netlify Serverless Fast Direct Stream Extractor
+    // Mode 2: Serverless / Netlify Fallback with pure JS @distube/ytdl-core
     const info = await ytdl.getInfo(targetUrl);
     const title = info.videoDetails.title || "audio";
     const safeTitle = sanitizeFilename(title);
@@ -191,17 +191,27 @@ export async function POST(req: NextRequest) {
       throw new Error("Gagal mengekstrak stream audio dari YouTube.");
     }
 
-    // Cleanup temp directory
+    // Fetch audio stream directly
+    const audioRes = await fetch(formatObj.url);
+    if (!audioRes.ok) {
+      throw new Error("Gagal memuat turun stream audio dari YouTube CDN.");
+    }
+
+    const audioArrayBuffer = await audioRes.arrayBuffer();
+    const audioBuffer = Buffer.from(audioArrayBuffer);
+
+    // Clean up temp directory
     try {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     } catch (e) {}
 
-    // Return instant direct download payload for Netlify serverless execution (<300ms response!)
-    return NextResponse.json({
-      type: "direct_stream",
-      url: formatObj.url,
-      filename: `${safeTitle}.mp3`,
-      title: title,
+    return new NextResponse(audioBuffer, {
+      status: 200,
+      headers: {
+        "Content-Type": "audio/mpeg",
+        "Content-Disposition": `attachment; filename="${encodeURIComponent(safeTitle)}.mp3"`,
+        "Content-Length": audioBuffer.length.toString(),
+      },
     });
   } catch (err: any) {
     console.error("Convert error:", err);

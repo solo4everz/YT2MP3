@@ -55,7 +55,7 @@ export function ConverterCore() {
     } catch (e) {}
     notifications.show({
       title: "Sejarah Dipadam 🗑️",
-      message: "Semua rekod muat turun lagu telah dipadam.",
+      message: "Semua rekod penukaran lagu telah dipadam.",
       color: "yellow",
     });
   };
@@ -112,15 +112,16 @@ export function ConverterCore() {
     setErrorMessage("");
 
     try {
+      // Step interval animation for progress feedback
       const timer1 = setTimeout(() => {
         setStatus("encoding");
         setProgress(55);
-      }, 1500);
+      }, 2500);
 
       const timer2 = setTimeout(() => {
         setStatus("tagging");
         setProgress(85);
-      }, 3000);
+      }, 5500);
 
       const res = await fetch("/api/convert", {
         method: "POST",
@@ -138,52 +139,16 @@ export function ConverterCore() {
       clearTimeout(timer1);
       clearTimeout(timer2);
 
-      const contentType = res.headers.get("Content-Type") || "";
-
-      // Handle JSON response (Netlify serverless mode direct stream payload)
-      if (contentType.includes("application/json")) {
-        const json = await res.json();
-        if (json.type === "direct_stream" && json.url) {
-          const a = document.createElement("a");
-          a.href = json.url;
-          a.download = json.filename || `${currentVideo.title}.mp3`;
-          a.target = "_blank";
-          a.rel = "noopener noreferrer";
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-
-          setStatus("completed");
-          setProgress(100);
-
-          saveHistoryItem({
-            id: currentVideo.id,
-            video: currentVideo,
-            format: options.format,
-            quality: options.quality,
-            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          });
-
-          notifications.show({
-            title: "Proses Selesai! 🎉",
-            message: `Fail '${json.filename || currentVideo.title}' sedia dimuat turun.`,
-            color: "cyan",
-          });
-          return;
-        } else {
-          throw new Error(json.error || "Gagal memproses audio.");
-        }
-      }
-
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.error || "Gagal memproses audio.");
+        throw new Error(errorData.error || "Gagal menukar audio.");
       }
 
-      // Handle binary response (Local mode full FFmpeg output)
+      // Receive audio blob
       const blob = await res.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
 
+      // Extract title from Content-Disposition header if available
       const contentDisp = res.headers.get("Content-Disposition");
       let filename = `${currentVideo.title}.${options.format}`;
       if (contentDisp && contentDisp.includes("filename=")) {
@@ -193,6 +158,7 @@ export function ConverterCore() {
         }
       }
 
+      // Trigger automatic browser download
       const a = document.createElement("a");
       a.href = downloadUrl;
       a.download = filename;
@@ -204,16 +170,17 @@ export function ConverterCore() {
       setStatus("completed");
       setProgress(100);
 
+      // Save to history
       saveHistoryItem({
         id: currentVideo.id,
         video: currentVideo,
         format: options.format,
         quality: options.quality,
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       });
 
       notifications.show({
-        title: "Proses Selesai! 🎉",
+        title: "Penukaran Selesai! 🎉",
         message: `Fail '${filename}' sedang dimuat turun.`,
         color: "cyan",
       });
@@ -221,9 +188,9 @@ export function ConverterCore() {
       console.error("Convert error:", err);
       setStatus("error");
       setProgress(0);
-      setErrorMessage(err.message || "Gagal memproses audio.");
+      setErrorMessage(err.message || "Gagal menukar fail audio.");
       notifications.show({
-        title: "Gagal ❌",
+        title: "Penukaran Gagal ❌",
         message: err.message || "Sila cuba lagi.",
         color: "red",
       });
