@@ -13,7 +13,12 @@ function sanitizeFilename(name: string): string {
 
 function extractYouTubeId(str: string): string | null {
   if (!str) return null;
-  const clean = str.trim();
+  const clean = str
+    .replace(/[\u00A0\u1680\u180E\u2000-\u200B\u202F\u205F\u3000\ufeff]/g, " ")
+    .replace(/[\r\n\t]/g, "")
+    .replace(/^["']|["']$/g, "")
+    .trim();
+
   const match = clean.match(
     /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|shorts\/|watch\?v=|watch\?.+&v=))([\w-]{11})/i
   );
@@ -59,6 +64,8 @@ export async function POST(req: NextRequest) {
       "bestaudio/best",
       "--no-warnings",
       "--no-playlist",
+      "--user-agent",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
       "-o",
       inputTemplate,
       "--write-thumbnail",
@@ -205,7 +212,7 @@ export async function POST(req: NextRequest) {
       {
         error:
           "Gagal memproses audio. Sila pastikan format dan julat masa trim adalah betul.",
-        details: err?.message || String(err),
+        details: err?.stderr || err?.message || String(err),
       },
       { status: 500 }
     );

@@ -18,7 +18,13 @@ function formatDuration(seconds: number): string {
 
 function extractYouTubeId(str: string): string | null {
   if (!str) return null;
-  const clean = str.trim();
+  // Remove quotes, non-breaking spaces, newlines, and trailing spaces
+  const clean = str
+    .replace(/[\u00A0\u1680\u180E\u2000-\u200B\u202F\u205F\u3000\ufeff]/g, " ")
+    .replace(/[\r\n\t]/g, "")
+    .replace(/^["']|["']$/g, "")
+    .trim();
+
   const match = clean.match(
     /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|shorts\/|watch\?v=|watch\?.+&v=))([\w-]{11})/i
   );
@@ -56,11 +62,18 @@ export async function POST(req: NextRequest) {
         ? cleanInput
         : `https://${cleanInput}`;
 
-      // Fetch single video info with --no-playlist to prevent multi-JSON outputs
+      // Fetch single video info with user-agent and no-playlist
       const { stdout } = await execFileAsync(
         "yt-dlp",
-        ["--dump-json", "--no-warnings", "--no-playlist", targetUrl],
-        { maxBuffer: 10 * 1024 * 1024 }
+        [
+          "--dump-json",
+          "--no-warnings",
+          "--no-playlist",
+          "--user-agent",
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+          targetUrl,
+        ],
+        { maxBuffer: 15 * 1024 * 1024 }
       );
 
       const lines = stdout.trim().split("\n").filter(Boolean);
@@ -70,9 +83,15 @@ export async function POST(req: NextRequest) {
 
       const data = JSON.parse(lines[0]);
       const vId = data.id || videoId || data.display_id;
-      const thumbnail =
-        data.thumbnail ||
-        (vId ? `https://i.ytimg.com/vi/${vId}/maxresdefault.jpg` : "");
+
+      // Select best available thumbnail URL
+      let thumbnail = data.thumbnail;
+      if (!thumbnail && Array.isArray(data.thumbnails) && data.thumbnails.length > 0) {
+        thumbnail = data.thumbnails[data.thumbnails.length - 1].url;
+      }
+      if (!thumbnail && vId) {
+        thumbnail = `https://i.ytimg.com/vi/${vId}/hqdefault.jpg`;
+      }
 
       return NextResponse.json({
         type: "single",
@@ -82,7 +101,7 @@ export async function POST(req: NextRequest) {
           channel: data.uploader || data.channel || "Saluran YouTube",
           duration: data.duration || 0,
           durationFormatted: formatDuration(data.duration || 0),
-          thumbnail: thumbnail,
+          thumbnail: thumbnail || "",
           viewCount: data.like_count || data.view_count || 0,
           uploadDate: data.upload_date || "",
           url: data.webpage_url || `https://www.youtube.com/watch?v=${vId}`,
@@ -97,8 +116,10 @@ export async function POST(req: NextRequest) {
           "--dump-json",
           "--no-warnings",
           "--flat-playlist",
+          "--user-agent",
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
         ],
-        { maxBuffer: 10 * 1024 * 1024 }
+        { maxBuffer: 15 * 1024 * 1024 }
       );
 
       const lines = stdout.trim().split("\n").filter(Boolean);
@@ -130,7 +151,7 @@ export async function POST(req: NextRequest) {
       {
         error:
           "Gagal mendapatkan maklumat video YouTube. Sila pastikan link sah dan cuba lagi.",
-        details: err?.message || String(err),
+        details: err?.stderr || err?.message || String(err),
       },
       { status: 500 }
     );
