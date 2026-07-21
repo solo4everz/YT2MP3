@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
+    "@distube/ytdl-core": "^4.16.12",
     "@google/genai": "^1.51.0",
     "@mantine/core": "^9.4.2",
     "@mantine/hooks": "^9.4.2",
