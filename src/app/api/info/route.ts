@@ -16,6 +16,17 @@ function formatDuration(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
+function extractYouTubeId(str: string): string | null {
+  if (!str) return null;
+  const clean = str.trim();
+  const match = clean.match(
+    /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|shorts\/|watch\?v=|watch\?.+&v=))([\w-]{11})/i
+  );
+  if (match && match[1]) return match[1];
+  if (/^[\w-]{11}$/.test(clean)) return clean;
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -29,30 +40,44 @@ export async function POST(req: NextRequest) {
     }
 
     const cleanInput = input.trim();
+    const videoId = extractYouTubeId(cleanInput);
     const isUrl =
+      videoId !== null ||
       cleanInput.includes("youtube.com") ||
       cleanInput.includes("youtu.be") ||
       cleanInput.startsWith("http://") ||
       cleanInput.startsWith("https://");
 
     if (isUrl) {
-      // Fetch single video info
+      // Normalize target YouTube URL
+      const targetUrl = videoId
+        ? `https://www.youtube.com/watch?v=${videoId}`
+        : cleanInput.startsWith("http")
+        ? cleanInput
+        : `https://${cleanInput}`;
+
+      // Fetch single video info with --no-playlist to prevent multi-JSON outputs
       const { stdout } = await execFileAsync(
         "yt-dlp",
-        ["--dump-json", "--no-warnings", cleanInput],
+        ["--dump-json", "--no-warnings", "--no-playlist", targetUrl],
         { maxBuffer: 10 * 1024 * 1024 }
       );
 
-      const data = JSON.parse(stdout);
-      const videoId = data.id || data.display_id;
+      const lines = stdout.trim().split("\n").filter(Boolean);
+      if (lines.length === 0) {
+        throw new Error("Gagal membaca respon maklumat video.");
+      }
+
+      const data = JSON.parse(lines[0]);
+      const vId = data.id || videoId || data.display_id;
       const thumbnail =
         data.thumbnail ||
-        (videoId ? `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg` : "");
+        (vId ? `https://i.ytimg.com/vi/${vId}/maxresdefault.jpg` : "");
 
       return NextResponse.json({
         type: "single",
         video: {
-          id: videoId,
+          id: vId,
           title: data.title || "Tajuk Tidak Diketahui",
           channel: data.uploader || data.channel || "Saluran YouTube",
           duration: data.duration || 0,
@@ -60,7 +85,7 @@ export async function POST(req: NextRequest) {
           thumbnail: thumbnail,
           viewCount: data.like_count || data.view_count || 0,
           uploadDate: data.upload_date || "",
-          url: data.webpage_url || `https://www.youtube.com/watch?v=${videoId}`,
+          url: data.webpage_url || `https://www.youtube.com/watch?v=${vId}`,
         },
       });
     } else {

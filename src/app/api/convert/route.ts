@@ -11,6 +11,17 @@ function sanitizeFilename(name: string): string {
   return name.replace(/[/\\?%*:|"<>]/g, "_").substring(0, 150);
 }
 
+function extractYouTubeId(str: string): string | null {
+  if (!str) return null;
+  const clean = str.trim();
+  const match = clean.match(
+    /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|shorts\/|watch\?v=|watch\?.+&v=))([\w-]{11})/i
+  );
+  if (match && match[1]) return match[1];
+  if (/^[\w-]{11}$/.test(clean)) return clean;
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "yt2mp3-"));
 
@@ -34,19 +45,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const videoId = extractYouTubeId(url);
+    const targetUrl = videoId
+      ? `https://www.youtube.com/watch?v=${videoId}`
+      : url.startsWith("http")
+      ? url
+      : `https://${url}`;
+
     // Step 1: Download highest quality audio & thumbnail with yt-dlp
     const inputTemplate = path.join(tmpDir, "input.%(ext)s");
     const downloadArgs = [
       "-f",
       "bestaudio/best",
       "--no-warnings",
+      "--no-playlist",
       "-o",
       inputTemplate,
       "--write-thumbnail",
       "--convert-thumbnails",
       "jpg",
       "--write-info-json",
-      url,
+      targetUrl,
     ];
 
     await execFileAsync("yt-dlp", downloadArgs, {
