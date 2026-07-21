@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <rect width="512" height="512" rx="128" fill="#000000"/>
+  <rect width="496" height="496" x="8" y="8" rx="120" fill="none" stroke="#a855f7" stroke-width="12"/>
+  
+  <!-- Headphones Illustration in Purple & Neon Cyan Glow -->
+  <g transform="translate(256 256) scale(1.1) translate(-256 -256)">
+    <!-- Headband Arc -->
+    <path d="M 128 260 A 128 128 0 0 1 384 260" fill="none" stroke="#a855f7" stroke-width="36" stroke-linecap="round"/>
+    <path d="M 128 260 A 128 128 0 0 1 384 260" fill="none" stroke="#e9d5ff" stroke-width="12" stroke-linecap="round" opacity="0.8"/>
+    
+    <!-- Outer Band Cushion -->
+    <path d="M 160 210 A 100 100 0 0 1 352 210" fill="none" stroke="#581c87" stroke-width="20" stroke-linecap="round"/>
+
+    <!-- Left Ear Cup Structure -->
+    <rect x="96" y="240" width="56" height="110" rx="28" fill="#18181b" stroke="#a855f7" stroke-width="8"/>
+    <rect x="110" y="250" width="36" height="90" rx="18" fill="#a855f7"/>
+    <rect x="84" y="260" width="20" height="70" rx="10" fill="#00f0ff"/>
+
+    <!-- Right Ear Cup Structure -->
+    <rect x="360" y="240" width="56" height="110" rx="28" fill="#18181b" stroke="#a855f7" stroke-width="8"/>
+    <rect x="366" y="250" width="36" height="90" rx="18" fill="#a855f7"/>
+    <rect x="408" y="260" width="20" height="70" rx="10" fill="#00f0ff"/>
+
+    <!-- Sound Equalizer Waves inside Headphone -->
+    <rect x="206" y="290" width="10" height="30" rx="5" fill="#ff2a85"/>
+    <rect x="226" y="270" width="10" height="70" rx="5" fill="#00f0ff"/>
+    <rect x="246" y="250" width="10" height="110" rx="5" fill="#ffe600"/>
+    <rect x="266" y="275" width="10" height="60" rx="5" fill="#00f0ff"/>
+    <rect x="286" y="295" width="10" height="20" rx="5" fill="#ff2a85"/>
+  </g>
+</svg>
