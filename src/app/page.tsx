@@ -87,7 +87,7 @@ export default function Home() {
                   <span className="inline-block px-3 py-1 bg-[#ff2a85] text-white border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] rotate-[-2deg] hover:rotate-0 transition-transform">
                     MP3 320KBPS
                   </span>{" "}
-                  <span className="text-[#00f0ff]">PINGGAN PANTAS!</span>
+                  <span className="text-[#00f0ff]">SUPER PANTAS!</span>
                 </h1>
 
                 <p className="text-slate-300 text-base sm:text-xl max-w-2xl mx-auto font-semibold leading-relaxed">
